@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tempahan Kereta Pelancong</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white shadow-lg rounded-2xl p-6 w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center mb-4">🚖 Tempahan Kereta</h1>
+
+    <!-- Lokasi semasa -->
+    <button onclick="getLocation()" class="w-full bg-blue-500 text-white py-2 rounded-xl mb-3">
+      📍 Guna Lokasi Semasa
+    </button>
+    <p id="currentLocation" class="text-sm text-gray-600 mb-4">Lokasi semasa belum ditentukan.</p>
+
+    <!-- Input destinasi -->
+    <label class="block text-gray-700 mb-1">Destinasi:</label>
+    <input id="destination" type="text" placeholder="Contoh: Komtar Penang"
+      class="w-full border rounded-xl p-2 mb-3" />
+
+    <button onclick="calculateFare()" class="w-full bg-green-500 text-white py-2 rounded-xl">
+      🚗 Kira Caj Perjalanan
+    </button>
+
+    <!-- Output -->
+    <div id="result" class="mt-4 p-3 bg-gray-50 rounded-xl text-center text-lg font-semibold"></div>
+  </div>
+
+  <script>
+    let userLat, userLon;
+
+    // Ambil lokasi pengguna
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            userLat = pos.coords.latitude;
+            userLon = pos.coords.longitude;
+            document.getElementById("currentLocation").innerText =
+              `Lokasi Semasa: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+          },
+          () => alert("❌ Gagal dapatkan lokasi. Sila benarkan akses lokasi.")
+        );
+      } else {
+        alert("Geolocation tidak disokong pada peranti ini.");
+      }
+    }
+
+    // Kira jarak dengan formula Haversine
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371; // km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Kira tambang
+    async function calculateFare() {
+      const destination = document.getElementById("destination").value.trim();
+      if (!userLat || !userLon) {
+        alert("📍 Sila dapatkan lokasi semasa dahulu!");
+        return;
+      }
+      if (!destination) {
+        alert("Sila masukkan destinasi.");
+        return;
+      }
+
+      // Cari koordinat destinasi dengan OpenStreetMap (Nominatim API)
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.length === 0) {
+        alert("❌ Destinasi tidak dijumpai. Cuba nama lain.");
+        return;
+      }
+
+      const destLat = parseFloat(data[0].lat);
+      const destLon = parseFloat(data[0].lon);
+
+      const distance = haversine(userLat, userLon, destLat, destLon);
+      const fare = (distance * 1.5).toFixed(2);
+
+      document.getElementById("result").innerHTML =
+        `📍 Jarak: ${distance.toFixed(2)} km<br>💰 Caj: RM ${fare}`;
+    }
+  </script>
+</body>
+</html>
